@@ -118,3 +118,8 @@ por lo que escalan al acercarse o alejarse de la cámara.
 | `GLOW_STRENGTH` | Intensidad con la que se suma el resplandor a la imagen | 1.0 |
 | `RISE_SPEED` | Velocidad a la que aparecen los rayos al detectar una cara, por fotograma | 0.2 |
 | `FALL_SPEED` | Velocidad a la que desaparecen los rayos al perder la cara, por fotograma | 0.1 |
+
+
+### Créditos
+
+- [Mediapipe - face landmarker](https://developers.google.com/edge/mediapipe/solutions/vision/face_landmarker) 
