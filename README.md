@@ -49,11 +49,28 @@ La dirección de los rayos depende de cómo está orientada la cabeza, que se de
 
 #### Suavizado y calibración
 
-Los *landmarks* se mueven unos píxeles de un fotograma a otro incluso con la cara quieta. Este ruido se amplifica al calcular el *yaw* y el *pitch*, porque se obtienen de restar y dividir cantidades pequeñas, y haría que los rayos vibraran.
+Los *landmarks* se mueven unos píxeles de un fotograma a otro incluso con la cara quieta.
+Este ruido se amplifica al calcular el *yaw* y el *pitch*,
+porque se obtienen de restar y dividir cantidades pequeñas,
+y haría que los rayos vibraran.
 
-Para evitarlo, el *yaw* y el *pitch* se suavizan con una media móvil exponencial: en cada fotograma, el valor suavizado se acerca una fracción (`SMOOTH`) a la medida nueva. Un valor alto reacciona rápido pero deja pasar más ruido, y un valor bajo da más estabilidad a costa de algo de retardo. Cuando se pierde la cara, el suavizado se reinicia, para no arrastrar valores antiguos al recuperarla.
+Para evitarlo, el *yaw* y el *pitch* se suavizan
+con una media móvil exponencial: 
+en cada fotograma, 
+el valor suavizado se acerca una fracción (`SMOOTH`) a la medida nueva.
+Un valor alto reacciona rápido pero deja pasar más ruido,
+y un valor bajo da más estabilidad a costa de algo de retardo.
+Cuando se pierde la cara,
+el suavizado se reinicia para no arrastrar valores antiguos al recuperarla.
 
-Además, la posición de la nariz en reposo no coincide exactamente con el punto medio de los ojos, y varía de una persona a otra y según la cámara. Por eso el filtro necesita calibrarse: al pulsar la tecla `c` mirando de frente a la cámara, se guardan los valores suavizados de *yaw* y *pitch* de ese instante como posición neutra y se restan a partir de entonces. Después, ambos valores se limitan a un rango (`ANGLE_LIMIT`) para que un error puntual de detección no desvíe los rayos de forma exagerada.
+Además, la posición de la nariz en reposo no coincide exactamente con el punto medio de los ojos,
+y varía de una persona a otra y según la cámara. Por eso el filtro necesita calibrarse:
+al pulsar la tecla `c` mirando de frente a la cámara,
+se guardan los valores suavizados de *yaw* y *pitch* de ese instante
+como posición neutra 
+y se restan a partir de entonces.
+Después, ambos valores se limitan a un rango (`ANGLE_LIMIT`)
+para que un error puntual de detección no desvíe los rayos de forma exagerada.
 
 #### Dibujado de los rayos
 
