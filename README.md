@@ -122,4 +122,119 @@ por lo que escalan al acercarse o alejarse de la cámara.
 
 ### Créditos
 
-- [Mediapipe - face landmarker](https://developers.google.com/edge/mediapipe/solutions/vision/face_landmarker) 
+- [Mediapipe - face landmarker](https://developers.google.com/edge/mediapipe/solutions/vision/face_landmarker)
+
+## Filtro 2: Explosiones
+
+Consiste en hacer que aparezca una explosión a pantalla completa cuando se detecta una cara enfadada.
+
+El **trabajo realizado** se divide en el entrenamiento del modelo detector de enfado y en la implementación del propio filtro.
+
+### Modelo de detección de enfado
+
+Para decidir cuándo se dispara la explosión se ha entrenado un clasificador binario: *enfadado* frente a *no enfadado*.
+El entrenamiento se ha hecho en un notebook de [Google Colab](https://drive.google.com/drive/folders/1EvSTWft7OV2LIjSTl1NjoRIlZZu-88ge?usp=sharing) con una GPU T4,
+y el modelo resultante se carga después en local para ejecutar el filtro.
+
+#### Dataset
+
+Se ha usado FER2013, en su versión en carpetas (una por emoción) disponible en Kaggle (`msambare/fer2013`).
+Las imágenes son recortes de caras de 48x48 píxeles en escala de grises.
+
+Las siete emociones originales se han reducido a dos: la clase *angry* pasa a ser la positiva
+y las otras seis se agrupan en la negativa.
+Esto es suficiente para el filtro, que solo necesita saber si hay enfado o no.
+
+La partición se ha hecho así:
+- **Entrenamiento y validación:** carpeta `train` del dataset, reservando un 15 % para validación.
+- **Test:** carpeta `test`, sin tocarla hasta la evaluación final.
+
+El dataset está bastante desbalanceado:
+la clase *angry* representa en torno al 14 % de las imágenes de entrenamiento.
+Para compensarlo, se han usado pesos de clase inversamente proporcionales a su frecuencia en la función de pérdida.
+
+#### Arquitectura
+
+Se ha usado una CNN pequeña, pensada para que la inferencia sea rápida en CPU:
+
+1. Tres bloques convolucionales con 32, 64 y 128 filtros.
+   Cada bloque tiene dos convoluciones 3x3 con *batch normalization* y ReLU, seguidas de *max pooling* y *dropout* (0.25).
+2. *Global average pooling*, en lugar de aplanar el mapa de características, para reducir el número de parámetros.
+3. Una capa densa de 64 neuronas con *dropout* (0.4).
+4. Una neurona de salida con activación sigmoide, que da la probabilidad de enfado.
+
+El reescalado de los píxeles (0-255 a 0-1) y el *data augmentation* forman parte del propio modelo.
+De este modo, en local basta con pasarle el recorte de la cara en gris y a 48x48 sin normalizar,
+y el *augmentation* solo actúa durante el entrenamiento.
+
+El *data augmentation* aplicado es:
+- Volteo horizontal.
+- Rotación aleatoria de hasta ±18°.
+- Zoom aleatorio de hasta ±10 %.
+
+#### Entrenamiento
+
+| Parámetro | Valor |
+|---|---|
+| Optimizador | Adam, con tasa de aprendizaje inicial de 1e-3 |
+| Función de pérdida | *Binary cross-entropy*, con pesos de clase |
+| Tamaño de lote | 128 |
+| Épocas máximas | 60 |
+| *Early stopping* | Paciencia de 10 épocas, sobre la AUC de validación |
+| Reducción de la tasa de aprendizaje | Se divide a la mitad tras 4 épocas sin mejorar la AUC de validación |
+| Semilla | 42 |
+
+Se conservan los pesos de la época con mejor AUC de validación.
+En este entrenamiento el *early stopping* no llegó a activarse y se completaron las 60 épocas.
+
+![curvas](imgs/curves.png)
+
+En las curvas se observa que la AUC de entrenamiento (≈ 0.87) y la de validación (≈ 0.85) van muy próximas,
+por lo que no hay un sobreajuste apreciable.
+La pérdida de validación presenta picos muy grandes al principio del entrenamiento
+y se estabiliza después, aunque sigue siendo algo más ruidosa que la de entrenamiento.
+
+#### Elección del umbral
+
+La red devuelve una probabilidad, y hay que decidir a partir de qué valor se considera que la cara está enfadada.
+El umbral se ha elegido sobre el conjunto de validación, no sobre el de test,
+buscando el valor que maximiza la medida F1 de la clase *angry*.
+De este modo, la evaluación final sobre test es honesta.
+
+El umbral resultante es **0.732**.
+
+
+#### Resultados
+
+Evaluación sobre el conjunto de test de FER2013 (7178 imágenes, de las cuales 958 son *angry*):
+
+![matriz de confusión](imgs/conf_matrix.png)
+
+| Métrica (clase *angry*) | Valor |
+|---|---|
+| Precisión | 0.47 |
+| *Recall* | 0.58 |
+| F1 | 0.52 |
+| AUC en test | 0.853 |
+| *Accuracy* global | 0.857 |
+| Tiempo de inferencia en local | 23.25 ms |
+
+Antes de interpretar estos números hay que tener en cuenta lo siguiente:
+
+- Un clasificador que respondiera siempre "no enfadado" acertaría el 86.7 % de las veces,
+  más que el modelo entrenado.
+  Por eso, además de la *accuracy*, se analizan el *recall* y el F1 de la clase de interés.
+- En FER2013 las etiquetas tienen ruido y las imágenes son de baja resolución,
+  por lo que el enfado puede confundirse con bastante frecuencia.
+- Con este umbral, el modelo detecta un 58 % de las caras enfadadas,
+  pero un 10 % de las no enfadadas se clasifican como enfadadas
+  y, como la clase positiva es minoritaria, menos de la mitad de las detecciones son correctas.
+
+Para el filtro, la principal limitación es la precisión,
+ya que cada falso positivo supone una explosión no deseada.
+
+
+### Créditos
+
+- [FER2013 (versión de Kaggle)](https://www.kaggle.com/datasets/msambare/fer2013)
+- [TensorFlow / Keras](https://www.tensorflow.org/)
