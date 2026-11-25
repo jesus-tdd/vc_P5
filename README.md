@@ -3,7 +3,7 @@
 ## Contenido
 
 - [Inspiración](#inspiración)
-- [Demo](#demo)
+- [Demo](#dem)
 - [Filtro 1 - Rayos Láser](#filtro-1-rayos-láser)
   - [Controles](#controles)
   - [Trabajo Realizado](#trabajo-realizado)
@@ -352,5 +352,5 @@ Se ha usado inteligencia artificial para los siguientes aspectos del trabajo.
 
 ### Filtro 2
 - Acceso a la documentación y ejemplos de uso de *TensorFlow*.
-- Uso de `ffmpeg`.
-- Cálculo de la transparencia del vídeo de la explosión.
+- Ajuste del comando de `ffmpeg` para la obtención de la máscara de la explosión.
+- Representación de la explosión en su clase homónima.
