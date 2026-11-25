@@ -265,13 +265,34 @@ En este caso, en vez de obtener la posición de *landmarks* determinados,
 se obtiene el espacio del vídeo en el que se encuentra la cara para realizar en él la detección de enfado con el modelo entrenado.
 
 
+#### Detección de enfado
+
+Con la caja obtenida en el paso anterior se recorta un cuadrado centrado en la cara,
+cuyo lado es la mayor de sus dos dimensiones ampliada.
+Por cada lado, en una fracción `CROP_MARGIN`.
+El recorte se pasa a escala de grises, se reescala a `INPUT_SIZE` y se introduce en la CNN sin normalizar, ya que el propio modelo se encarga de ello.
+
+La CNN no se ejecuta en todos los fotogramas, sino cada `INFER_EVERY` fotogramas con cara detectada.
+La probabilidad obtenida se suaviza con una media móvil exponencial (`SMOOTH`),
+lo que atenúa los picos aislados.
+
+Para decidir si la cara está enfadada,
+se compara la probabilidad suavizada con el umbral elegido durante el entrenamiento 
+(0.732, guardado en `config.json`).
+Se aplica histéresis: el estado pasa a *enfadado* cuando la probabilidad alcanza el umbral, pero solo vuelve a *no enfadado* cuando baja de `umbral - HYSTERESIS`.
+De este modo, el estado no oscila cuando la probabilidad se mantiene cerca del umbral.
+Si se pierde la cara, el suavizado se reinicia y el estado vuelve a *no enfadado*.
+
+La explosión se lanza en el momento en que el estado cambia a *enfadado*.
+
+
 #### Explosión
 
-La explosión se ha obtenido a partir de un vídeo de
-[YouTube](https://www.youtube.com/watch?v=ESnTiQ69jzQ),
-y se ha procesado con `ffmpeg`
-para obtener su máscara y,
-posteriormente, eliminar el fondo.
+La explosión se ha obtenido a partir de un vídeo de 
+[YouTube](https://www.youtube.com/watch?v=ESnTiQ69jzQ)
+con fondo verde.
+Con `ffmpeg` se ha generado un vídeo de máscara en escala de grises que contiene la transparencia de cada fotograma.
+El fondo no se elimina en este paso, sino al dibujar, usando la máscara como canal alfa.
 
 ```bash
 ffmpeg -i explosion.mp4 -filter_complex "\
@@ -283,9 +304,22 @@ ffmpeg -i explosion.mp4 -filter_complex "\
   -map "[out]" -c:v ffv1 -pix_fmt gray mascara.mkv
 ```
 
-En el propio código, las explosiones se representan mediante la clase `Explosion`,
-que abarca tanto el cálculo de la transparencia del vídeo a partir de la máscara
-como su posterior dibujado. 
+La clase `Explosion` carga en memoria el vídeo y la máscara al iniciar el programa.
+Los fotogramas se reducen a un máximo de 480 píxeles de ancho para ahorrar memoria,
+y la máscara se convierte a un solo canal
+y se reescala al mismo tamaño que el fotograma.
+
+Cuando se detecta enfado, la explosión se reproduce una sola vez.
+El fotograma que corresponde mostrar se calcula a partir del tiempo real transcurrido
+y los FPS del vídeo,
+de modo que la duración de la explosión 
+no depende de los fotogramas por segundo a los que vaya el filtro. 
+Mientras haya una explosión en marcha no se lanza otra.
+
+En cada fotograma, la explosión se estira al tamaño de la imagen,
+sin mantener la proporción,
+y se mezcla con ella usando la máscara como transparencia.
+Por este motivo, la explosión se deforma si la proporción del vídeo no coincide con la de la cámara.
 
 ### Parámetros
 
@@ -301,7 +335,7 @@ como su posterior dibujado.
 
 - [FER2013 (versión de Kaggle)](https://www.kaggle.com/datasets/msambare/fer2013)
 - [TensorFlow / Keras](https://www.tensorflow.org/)
-- [YouTube](https://www.youtube.com/watch?v=ESnTiQ69jzQ)
+- [Green Screen Explosion Effect - Criza27 (YouTube)](https://www.youtube.com/watch?v=ESnTiQ69jzQ)
 
 ## Uso de IA
 Se ha usado inteligencia artificial para los siguientes aspectos del trabajo.
