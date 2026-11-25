@@ -1,13 +1,16 @@
 # Práctica 5. Biometría: Detección y caracterización de caras
 
+
+## Inspiración
+Para ambos filtros, se ha tomado como inspiración el siguiente *gif*:
+
+![filtro](imgs/jonkler.gif)
+
+
 ## Filtro 1: Rayos láser
 
 Consiste en hacer que el usuario dispare rayos láser por los ojos.
 
-### Inspiración
-Se ha tomado como inspiración el siguiente filtro:
-
-![filtro](imgs/jonkler.gif)
 
 ### Controles
 - `c`: calibrar filtro
@@ -96,7 +99,7 @@ para que el coste de calcularlo sea menor.
 Por último, tanto la matriz con los rayos como la del resplandor se suman a la imagen captada por la cámara.
 De este modo, la luz de los rayos ilumina lo que hay detrás en lugar de taparlo.
 
-#### Parámetros
+### Parámetros
 
 Los parámetros que controlan el comportamiento y el aspecto de los rayos se definen como constantes al inicio del script,
 de modo que se pueden modificar fácilmente.
@@ -234,7 +237,66 @@ Para el filtro, la principal limitación es la precisión,
 ya que cada falso positivo supone una explosión no deseada.
 
 
+### Implementación del filtro
+
+
+#### Detección de caras
+La detección de caras,
+al igual que en el filtro descrito anteriormente,
+se realiza con el modelo `face_landmarker.task` de *mediapipe*.
+
+En este caso, en vez de obtener la posición de *landmarks* determinados,
+se obtiene el espacio del vídeo en el que se encuentra la cara para realizar en él la detección de enfado con el modelo entrenado.
+
+
+#### Explosión
+
+La explosión se ha obtenido a partir de un vídeo de
+[YouTube](https://www.youtube.com/watch?v=ESnTiQ69jzQ),
+y se ha procesado con `ffmpeg`
+para obtener su máscara y,
+posteriormente, eliminar el fondo.
+
+```bash
+ffmpeg -i explosion.mp4 -filter_complex "\
+[0:v]split[a][b];\
+[a]chromakey=color=0x00FF00:similarity=0.25:blend=0.08,format=yuva420p,alphaextract,erosion[k];\
+[b]format=gbrp,extractplanes=r+g[r][g];\
+[r][g]blend=all_expr='clip((A-B+40)*4,0,255)'[p];\
+[k][p]blend=all_mode=lighten,format=gray[out]" \
+  -map "[out]" -c:v ffv1 -pix_fmt gray mascara.mkv
+```
+
+En el propio código, las explosiones se representan mediante la clase `Explosion`,
+que abarca tanto el cálculo de la transparencia del vídeo a partir de la máscara
+como su posterior dibujado. 
+
+### Parámetros
+
+| Parámetro | Descripción | Valor por defecto |
+|---|---|---|
+| `INPUT_SIZE` | Tamaño al que se reescala el recorte de la cara antes de pasarlo a la CNN. Debe coincidir con el tamaño con el que se entrenó. | `(48, 48)` |
+| `CROP_MARGIN` | Margen extra alrededor de la cara al recortarla. | `0.10` |
+| `INFER_EVERY` | La CNN solo se ejecuta cada N fotogramas para ahorrar cómputo. | `2` |
+| `SMOOTH` | Factor del suavizado exponencial de la probabilidad: `prob_smooth += SMOOTH * (prob - prob_smooth)`. Un valor bajo da una señal más estable pero más lenta; `1.0` equivale a no suavizar. | `0.35` |
+| `HYSTERESIS` | Evita parpadeos del estado "enfadado". Se activa cuando `prob_smooth >= umbral`, pero solo se desactiva cuando baja de `umbral - HYSTERESIS`. | `0.10` |
+
 ### Créditos
 
 - [FER2013 (versión de Kaggle)](https://www.kaggle.com/datasets/msambare/fer2013)
 - [TensorFlow / Keras](https://www.tensorflow.org/)
+- [YouTube](https://www.youtube.com/watch?v=ESnTiQ69jzQ)
+
+## Uso de IA
+Se ha usado inteligencia artificial para los siguientes aspectos del trabajo.
+
+### Filtro 1
+- Facilitar la curva de aprendizaje a la hora del uso de mediapipe, tanto facilitando la documentación como con ejemplos de uso
+- Afinamiento de las fórmulas para calcular la trayectoria de los rayos láser.
+- Suavizado del movimiento de la cara.
+- Estética del dibujado de los rayos.
+
+### Filtro 2
+- Acceso a la documentación y ejemplos de uso de *TensorFlow*.
+- Uso de `ffmpeg`.
+- Cálculo de la transparencia del vídeo de la explosión.
