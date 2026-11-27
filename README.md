@@ -15,6 +15,7 @@
     - [Implementación del Filtro](#implementación-del-filtro)
   - [Parámetros](#parámetros-1)
   - [Créditos](#créditos-1)
+- [Extra](#extra)
 - [Uso de IA](#uso-de-ia)
 
 
@@ -25,6 +26,9 @@ Para ambos filtros, se ha tomado como inspiración el siguiente *gif*:
 
 
 ## Demo
+En la demo se muestra el funcionamiento del [extra](#extra), 
+los dos filtros en funcionamiento al mismo tiempo.
+
 [Vídeo](demo.mp4)
 
 ## Filtro 1: Rayos láser
