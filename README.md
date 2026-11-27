@@ -3,7 +3,7 @@
 ## Contenido
 
 - [Inspiración](#inspiración)
-- [Demo](#dem)
+- [Demo](#demo)
 - [Filtro 1 - Rayos Láser](#filtro-1-rayos-láser)
   - [Controles](#controles)
   - [Trabajo Realizado](#trabajo-realizado)
@@ -340,6 +340,9 @@ Por este motivo, la explosión se deforma si la proporción del vídeo no coinci
 - [FER2013 (versión de Kaggle)](https://www.kaggle.com/datasets/msambare/fer2013)
 - [TensorFlow / Keras](https://www.tensorflow.org/)
 - [Green Screen Explosion Effect - Criza27 (YouTube)](https://www.youtube.com/watch?v=ESnTiQ69jzQ)
+
+## Extra
+En el fichero `filters_merged.ipynb` se ejecutan ambos filtros a la vez para mayor efecto cómico.
 
 ## Uso de IA
 Se ha usado inteligencia artificial para los siguientes aspectos del trabajo.
